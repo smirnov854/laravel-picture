@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Picture;
+use App\Models\PictureCategory;
 use App\Models\Vote;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Monolog\Logger;
 
 class PictureController extends Controller
 {
@@ -16,7 +19,7 @@ class PictureController extends Controller
      */
     public function index()
     {
-        return response(['list'=>Picture::all()]);
+        return response(Picture::orderBy('id','DESC')->paginate(12));
     }
 
     /**
@@ -27,10 +30,14 @@ class PictureController extends Controller
      */
     public function store(Request $request)
     {
+        $fields = $request->validate([
+            'name'=>'required',
+            'image'=>'required|mimes:jpeg,png,bmp,jpg'
+        ]);
         if(!$request->hasFile('image')) {
             return response([
                 'message'=>'need to upload file'
-            ],403);
+            ],400);
         }
         if($request->hasFile('image')) {
             $file = $request->file('image');
@@ -41,14 +48,12 @@ class PictureController extends Controller
             Storage::putFileAs($upload_folder, $file, $new_file_name);
         }
 
-        $fields = $request->validate([
-            'name'=>'required',
-        ]);
-        return Picture::create([
+
+        return response(Picture::create([
             'name'=>$fields['name'],
             'path'=>'/storage/pictures/'.$new_file_name,
             'user_id'=>auth()->user()->id
-        ]);
+        ]),201);
     }
 
     /**
@@ -60,7 +65,7 @@ class PictureController extends Controller
     public function show($id)
     {
         $pictureData = Picture::where('id',$id)->first();
-        $votes = Vote::where('picture_id',$id)->get();
+        $votes = Vote::where('picture_id',$id)->where('user_id','=',auth()->user()->id)->get();
         return response([
             'picture_data'=>$pictureData,
             'votes'=>$votes
@@ -92,8 +97,26 @@ class PictureController extends Controller
     }
 
     public function userPictures(){
-        return response([
-            'list'=>Picture::where('user_id',auth()->user()->id)->get()
-        ]);
+        /*$data = DB::select(
+            "SELECT p.id,
+                   p.user_id,
+                   p.name,
+                   p.path,
+                   cat.name,
+                   (
+                       SELECT SUM(value)
+                       FROM votes v2
+                       WHERE v2.picture_id=p.id AND v2.category_id=cat.id
+                    )
+            FROM pictures p,picture_categories cat
+            WHERE p.user_id=51
+            ORDER BY id DESC"
+        );*/
+
+        $data = Picture::where('pictures.user_id',auth()->user()->id)
+            ->orderBy('id','DESC')
+            ->paginate(10);
+        return response($data);
     }
+
 }

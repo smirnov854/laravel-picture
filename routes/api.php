@@ -9,7 +9,6 @@ use App\Http\Middleware\AdminAuthMiddleware;
 use App\Http\Middleware\AuthMiddleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AuthController;
 /*
 |--------------------------------------------------------------------------
@@ -34,10 +33,15 @@ Route::group(['middleware'=>['auth:sanctum']], function () {
 
         Route::get('/logout',[AuthController::class,'logout']);
         Route::get('/user-pictures',[PictureController::class,'userPictures']);
-        Route::get('/category',[PictureCategoryController::class,'index']);
+        Route::resource('category',PictureCategoryController::class);
+
+        Route::post('/category-and-votes',[PictureCategoryController::class,'categoryAndVotes']);
 
         Route::resource('pictures',PictureController::class);
         Route::resource('votes',VoteController::class);
+
+        Route::post('/add-votes',[VoteController::class,'addVotes']);
+        Route::get('/picture-votes/{id}',[VoteController::class,'pictureVotes']);
 
     });
 

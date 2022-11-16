@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PictureCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PictureCategoryController extends Controller
 {
@@ -83,5 +84,15 @@ class PictureCategoryController extends Controller
     public function destroy(PictureCategory $pictureCategory)
     {
         //
+    }
+
+
+    public function categoryAndVotes(Request $request){
+        $list = PictureCategory::select('picture_categories.*','votes.value')->leftJoin("votes",function($join) use ($request){
+            $join->on('votes.category_id', '=', 'picture_categories.id');
+            $join->on('votes.user_id','=',DB::raw("'".auth()->user()->id."'"));
+            $join->on('votes.picture_id','=',DB::raw("'".$request->post('picture_id')."'"));
+        })->get();
+        return response($list);
     }
 }
